@@ -1,4 +1,4 @@
-# Dokumentacja projektu:
+# Dokumentacja projektu
 
 ---
 
@@ -52,7 +52,7 @@ Tetragon umożliwia szczegółowe monitorowanie działań procesów, wywołań s
 
 Główne możliwości Tetragona to:
 
-- stosowanie reguł bezpieczeństwa i filtrów w jądrze systemu bez utraty wydajności,
+- stosowanie reguł bezpieczeństwa i filtrów w jądrze systemu z minimalną utratą wydajności,
 - natychmiastowa reakcja na wykryte zdarzenia o charakterze bezpieczeństwa,
 - monitorowanie procesów i operacji systemowych w czasie rzeczywistym.
 
