@@ -131,7 +131,7 @@ Centralnym elementem jest narzędzie **Tetragon**, które odpowiada za monitorow
 
 Poniższy schemat przedstawia ogólny przepływ danych pomiędzy komponentami systemu:
 
-![Diagram architektury](./images/architektura_rozwiązań)
+![Diagram architektury](./images/architektura_systemu.jpg)
 
 ### Podsumowanie połączeń
 
@@ -241,7 +241,6 @@ Poniżej przedstawiono szczegółowy proces uruchamiania środowiska oraz wdraż
      --set tetragon.logging.level=debug \
      --set prometheus.enabled=true \
      --set prometheus.metricsPort=2112
-
    ```
 
 3. Dodaj przykładową politykę śledzenia TCP:
@@ -301,46 +300,172 @@ Poniżej przedstawiono szczegółowy proces uruchamiania środowiska oraz wdraż
    kubectl port-forward svc/prometheus-kube-prometheus-prometheus 9090:9090 -n monitoring
    kubectl port-forward svc/loki 3100:3100 -n monitoring
    kubectl port-forward svc/grafana 3000:80 -n monitoring
-
    ```
 
 ---
 
 ## 8. Kroki wdrożenia demonstracyjnego
 
+Poniższa sekcja opisuje sposób przeprowadzenia demonstracji działania środowiska monitorującego aplikację działającą w klastrze Kubernetes. Prezentacja obejmuje wygenerowanie ruchu w aplikacji, zebranie metryk i logów oraz ich wizualizację z wykorzystaniem Prometheusa i Lokiego.
+
+---
+
 ### 8.1 Konfiguracja środowiska
 
-*TO DO*
+Środowisko należy skonfigurować zgodnie z instrukcjami przedstawionymi w [rozdziale 7](#7-jak-odtworzyć-projekt--krok-po-kroku), który obejmuje:
+
+- utworzenie klastra Kubernetes (Kind),
+- wdrożenie aplikacji Guestbook,
+- instalację komponentów obserwacyjnych: Tetragon, Prometheus, Grafana, Loki,
+- skonfigurowanie port forwarding, aby umożliwić dostęp lokalny do usług.
+
+---
 
 ### 8.2 Przygotowanie danych
 
-*TO DO*
+**Uwaga:** Ta sekcja nie wymaga dodatkowego przygotowania danych – dane są generowane automatycznie w trakcie interakcji z aplikacją.
+
+---
 
 ### 8.3 Procedura wykonawcza
 
-*TO DO*
+W repozytorium znajduje się skrypt `traffic_generator.sh`, którego zadaniem jest generowanie ruchu w aplikacji Guestbook. Skrypt automatycznie wykonuje zapytania HTTP do aplikacji frontend, co powoduje wygenerowanie odpowiednich zdarzeń sieciowych, które są śledzone przez Tetragon, logowane przez Promtail i eksportowane do Lokiego oraz Prometheusa.
+
+Ponadto użytkownik może ręcznie wejść na stronę aplikacji (np. [http://localhost:8080](http://localhost:8080)) i dodawać wpisy – również te interakcje zostaną zarejestrowane.
+
+Aby uruchomić skrypt wykonaj:
+
+```bash
+traffic_generator.sh
+```
 
 ### 8.4 Prezentacja wyników
 
-*TO DO*
+Po wygenerowaniu ruchu, dane będą widoczne w systemie monitorującym:
+
+- **Grafana**: dostępna pod adresem [http://localhost:3000](http://localhost:3000)  
+  - login: `admin`  
+  - hasło: `admin`
+
+- **Loki (logi)**: umożliwia analizę zdarzeń i komunikatów z aplikacji oraz klastra.
+
+- **Prometheus (metryki)**: pozwala przeglądać dane o zużyciu zasobów oraz dane zebrane przez Tetragon.
+
+W Grafanie można wybrać interesujący zakres czasowy oraz tworzyć zapytania (np. w języku LogQL dla Lokiego lub PromQL dla Prometheusa), aby wizualizować dane.
+
+---
+
+### Przykład – metryki w Prometheusie:
+
+#### 1. Tetragon Policy Events Total
+
+![policy_events_total](./screenshots/policy_events_total.png)
+
+Metryka przedstawia liczbę zdarzeń zgodnych z politykami Tetragona. Wykres jest niemal liniowy, ponieważ polityki monitorujące TCP działają stale i regularnie rejestrują zdarzenia sieciowe.
+
+---
+
+#### 2. Tetragon Process Cache Misses Total
+
+![process_cache_misses_total](./screenshots/process_cache_misses_total.png)
+
+Metryka liczy przypadki, gdy proces nie został odnaleziony w pamięci podręcznej Tetragona. Początkowy wzrost wynika z zimnego startu cache'a, który z czasem się stabilizuje.
+
+---
+
+#### 3. Tetragon Events Exported Total
+
+![events_exported_total](./screenshots/events_exported_total.png)
+
+Pokazuje liczbę zdarzeń wyeksportowanych przez Tetragona. Początkowy szybki wzrost odpowiada inicjalnemu szczytowi aktywności, po czym system eksportuje dane w mniej więcej stałym tempie.
+
+---
+
+#### 4. Tetragon Process Cache Size
+
+![process_cache_size](./screenshots/process_cache_size.png)
+
+Reprezentuje rozmiar pamięci podręcznej procesów. Widać wyraźny skok w momencie uruchomienia skryptu generującego ruch, który spowodował pojawienie się nowych procesów w systemie.
+
+---
+
+#### 5. Tetragon Process Cache Evictions Total
+
+![process_cache_evictions_total](./screenshots/process_cache_evictions_total.png)
+
+Metryka śledzi liczbę usunięć z pamięci podręcznej procesów. Stopniowy wzrost kończy się gwałtownym skokiem, gdy system został dodatkowo obciążony ruchem sieciowym.
+
+---
+
+### Przykład – logi w Lokim:
+
+#### 1. Zdarzenia systemowe: `kprobe`, `exec`, `exit`
+
+![logs_kprobe_exec_exit](./screenshots/logs_kprobe_exec_exit.png)
+
+Na zrzucie widoczne są logi generowane przez Tetragona dla różnych typów zdarzeń systemowych:
+
+- `kprobe` – zdarzenia wywołania funkcji jądra (np. otwieranie połączenia TCP),
+- `exec` – uruchomienie nowego procesu,
+- `exit` – zakończenie procesu.
+
+Umożliwia to analizę zachowań aplikacji oraz ich wpływu na system.
+
+---
+
+#### 2. Logi filtrowane dla konkretnego poda
+
+![logs_by_pod](./screenshots/logs_by_pod.png)
+
+Loki pozwala filtrować logi po nazwie poda. Dzięki temu można obserwować dokładnie, co dzieje się wewnątrz wybranego komponentu aplikacji. Przykład pokazuje logi z pojedynczego poda w namespace `application`, pozwalając na szczegółowe debugowanie.
+
 
 ---
 
 ## 9. Wykorzystanie AI w projekcie
 
-*TO DO*
+
+Podczas realizacji projektu narzędzia AI (w szczególności modele językowe) były wykorzystywane głównie jako wsparcie w procesie debugowania i rozwiązywania problemów technicznych. W momentach, w których instalacja komponentów monitorujących (np. Tetragon, Prometheus czy Loki) napotykała błędy konfiguracyjne lub nieprawidłowe działanie, AI pomagało w identyfikacji przyczyn oraz podpowiadało możliwe rozwiązania. Dzięki temu możliwe było znacznie szybsze znajdowanie błędów i iteracyjne testowanie rozwiązań. AI pełniło również funkcję asystenta technicznego, wspierając analizę logów, interpretację komunikatów błędów oraz automatyzację niektórych fragmentów dokumentacji.
+
+Poniżej przedstawiono przykładową konwersację z chatem:
+
+![ai_logs](./screenshots/ai-logs_1.png)
 
 ---
 
 ## 10. Podsumowanie – wnioski
 
-*TO DO*
+### Podsumowanie
+
+W ramach projektu udało się zrealizować kompletną platformę demonstracyjną służącą do obserwowalności aplikacji uruchomionej w klastrze Kubernetes. Wykorzystano w tym celu szereg otwartoźródłowych narzędzi:
+
+- **Tetragon** – zaawansowane narzędzie typu eBPF do monitorowania niskopoziomowych zdarzeń systemowych, takich jak tworzenie procesów, wywołania funkcji jądra czy ruch sieciowy. Umożliwia szczegółowy wgląd w działanie aplikacji oraz systemu operacyjnego.
+- **Prometheus** – system do zbierania i przechowywania metryk. Pozwala analizować zachowanie systemu i aplikacji w czasie oraz reagować na zmiany wydajności.
+- **Loki** – skalowalne rozwiązanie do gromadzenia i przeszukiwania logów z klastra. Pozwala na centralne śledzenie zdarzeń z poszczególnych podów i komponentów.
+- **Grafana** – platforma do wizualizacji danych z różnych źródeł (m.in. Prometheus, Loki). Umożliwia tworzenie czytelnych dashboardów, analizę danych historycznych oraz korelację logów i metryk.
+
+Całość została uruchomiona lokalnie z wykorzystaniem narzędzia **Kind** (Kubernetes in Docker), co pozwala na szybkie testowanie i iteracyjne wdrażanie środowiska. Konfiguracja została przygotowana zgodnie z podejściem **Infrastructure as Code**, co zapewnia powtarzalność i łatwość odtwarzania projektu.
+
+### Wnioski
+
+Zrealizowany projekt pokazuje, jak przy użyciu nowoczesnych narzędzi open source można zbudować kompletny ekosystem do obserwowalności aplikacji działającej w środowisku Kubernetes. Wykorzystanie takich komponentów jak Tetragon, Prometheus, Loki i Grafana pozwala na skuteczne zbieranie, analizowanie i wizualizowanie danych operacyjnych — zarówno w postaci logów, jak i metryk systemowych.
+
+Zintegrowane podejście umożliwia uzyskanie pełnego obrazu działania systemu, co jest kluczowe przy rozwiązywaniu problemów, diagnozowaniu anomalii oraz zapewnianiu wysokiej dostępności usług. Monitorowanie procesów, ruchu sieciowego i zdarzeń systemowych na poziomie jądra (dzięki eBPF i Tetragonowi) daje wyjątkowo szczegółowy wgląd w zachowanie aplikacji, a korelacja tych danych z logami i metrykami pozwala na szybkie wykrywanie i analizowanie incydentów.
+
+Dodatkowo, wdrożenie środowiska w oparciu o podejście Infrastructure as Code (IaC) zapewnia pełną powtarzalność i łatwość uruchamiania projektu na dowolnym etapie — lokalnie, testowo lub w środowisku produkcyjnym. Dzięki temu rozwiązanie może stanowić solidną podstawę zarówno do celów edukacyjnych, jak i jako baza do dalszego rozwoju w obszarze observability i bezpieczeństwa kontenerów.
 
 ---
 
 ## 11. Bibliografia / Referencje
 
-*TO DO*
+- [Guestbook Example – Kubernetes GitHub](https://github.com/kubernetes/examples/tree/master/guestbook)
+- [Guestbook Tutorial – Kubernetes Docs](https://kubernetes.io/docs/tutorials/stateless-application/guestbook/)
+- [eBPF Security Guide – Isovalent](https://isovalent.com/books/ebpf-security/)
+- [Tetragon – Oficjalna strona](https://tetragon.io/)
+- [Tetragon – GitHub](https://github.com/cilium/tetragon)
+- [kubectl – Dokumentacja](https://kubernetes.io/docs/reference/kubectl/)
+- [Docker – Oficjalna strona](https://www.docker.com/)
+- [Kind – Kubernetes IN Docker](https://kind.sigs.k8s.io/)
 
 ---
 
