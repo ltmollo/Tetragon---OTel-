@@ -329,7 +329,7 @@ Poniższa sekcja opisuje sposób przeprowadzenia demonstracji działania środow
 
 ### 8.3 Procedura wykonawcza
 
-W repozytorium znajduje się skrypt `traffic_generator.sh`, którego zadaniem jest generowanie ruchu w aplikacji Guestbook. Skrypt automatycznie wykonuje zapytania HTTP do aplikacji frontend, co powoduje wygenerowanie odpowiednich zdarzeń sieciowych, które są śledzone przez Tetragon, logowane przez Promtail i eksportowane do Lokiego oraz Prometheusa.
+W repozytorium znajduje się skrypt `traffic_generator.sh`, którego zadaniem jest generowanie ruchu w aplikacji Guestbook. Skrypt automatycznie wykonuje zapytania HTTP do aplikacji frontend, co powoduje wygenerowanie odpowiednich zdarzeń sieciowych, które są śledzone przez Tetragon i eksportowane do Lokiego oraz Prometheusa.
 
 Ponadto użytkownik może ręcznie wejść na stronę aplikacji (np. [http://localhost:8080](http://localhost:8080)) i dodawać wpisy – również te interakcje zostaną zarejestrowane.
 
@@ -452,7 +452,7 @@ Zrealizowany projekt pokazuje, jak przy użyciu nowoczesnych narzędzi open sour
 
 Zintegrowane podejście umożliwia uzyskanie pełnego obrazu działania systemu, co jest kluczowe przy rozwiązywaniu problemów, diagnozowaniu anomalii oraz zapewnianiu wysokiej dostępności usług. Monitorowanie procesów, ruchu sieciowego i zdarzeń systemowych na poziomie jądra (dzięki eBPF i Tetragonowi) daje wyjątkowo szczegółowy wgląd w zachowanie aplikacji, a korelacja tych danych z logami i metrykami pozwala na szybkie wykrywanie i analizowanie incydentów.
 
-Dodatkowo, wdrożenie środowiska w oparciu o podejście Infrastructure as Code (IaC) zapewnia pełną powtarzalność i łatwość uruchamiania projektu na dowolnym etapie — lokalnie, testowo lub w środowisku produkcyjnym. Dzięki temu rozwiązanie może stanowić solidną podstawę zarówno do celów edukacyjnych, jak i jako baza do dalszego rozwoju w obszarze observability i bezpieczeństwa kontenerów.
+Dodatkowo, wdrożenie środowiska w oparciu o podejście Infrastructure as Code zapewnia pełną powtarzalność i łatwość uruchamiania projektu na dowolnym etapie — lokalnie, testowo lub w środowisku produkcyjnym. Dzięki temu rozwiązanie może stanowić solidną podstawę zarówno do celów edukacyjnych, jak i jako baza do dalszego rozwoju w obszarze observability i bezpieczeństwa kontenerów.
 
 ---
 
