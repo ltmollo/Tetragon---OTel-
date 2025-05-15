@@ -215,7 +215,7 @@ Poniżej przedstawiono szczegółowy proces uruchamiania środowiska oraz wdraż
 
 4. Zainstaluj aplikację Guestbook:
    ```bash
-   kubectl apply -f app-setup/all-in-one.yaml
+   kubectl apply -f app-setup/all_in_one.yaml
    ```
 ---
 
@@ -348,8 +348,10 @@ Po wygenerowaniu ruchu, dane będą widoczne w systemie monitorującym:
   - hasło: `admin`
 
 - **Loki (logi)**: umożliwia analizę zdarzeń i komunikatów z aplikacji oraz klastra.
+  - Jako url w datasource należy podać http://loki:3100
 
 - **Prometheus (metryki)**: pozwala przeglądać dane o zużyciu zasobów oraz dane zebrane przez Tetragon.
+  - Jako url w datasource należy podać http://prometheus-kube-prometheus-prometheus:9090
 
 W Grafanie można wybrać interesujący zakres czasowy oraz tworzyć zapytania (np. w języku LogQL dla Lokiego lub PromQL dla Prometheusa), aby wizualizować dane.
 
@@ -394,6 +396,14 @@ Reprezentuje rozmiar pamięci podręcznej procesów. Widać wyraźny skok w mome
 ![process_cache_evictions_total](./screenshots/process_cache_evictions_total.png)
 
 Metryka śledzi liczbę usunięć z pamięci podręcznej procesów. Stopniowy wzrost kończy się gwałtownym skokiem, gdy system został dodatkowo obciążony ruchem sieciowym.
+
+---
+
+#### 6. Tetragon PolicyFilter Operations Total
+
+![process_cache_evictions_total](./screenshots/tetragon_policyfilter_operations_total.png)
+
+Metryka śledzi liczbę operacji filtrów polityk. Wzrost wskazuje na większą liczbę zdarzeń do sprawdzenia.
 
 ---
 
